@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"mime"
@@ -72,13 +74,22 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	parts := strings.Split(mediaType, "/")
+	parts := strings.Split(mediatype, "/")
 	if len(parts) < 2 {
-		respondWithError(w, http.StatusBadRequest, "could not split mediaType for extention extraction", nil)
+		respondWithError(w, http.StatusBadRequest, "could not split mediatype for extention extraction", nil)
 		return
 	}
 	extension := parts[1]
-	filename := fmt.Sprintf("%s.%s", videoID, extension)
+
+	key := make([]byte, 32)
+	_, err = rand.Read(key)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "could not make key random 32 byte", err)
+		return
+	}
+	videoRandURL := base64.RawURLEncoding.EncodeToString(key)
+
+	filename := fmt.Sprintf("%s.%s", videoRandURL, extension)
 	dataURL := fmt.Sprintf("http://localhost:%s/assets/%s", cfg.port, filename)
 	fullPath := filepath.Join(cfg.assetsRoot, filename)
 
